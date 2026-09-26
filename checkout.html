@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<script src="js/theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keranjang & Checkout — Teman Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav-row">
+    <a href="index.html" class="logo"><img src="assets/img/logo.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Beranda</a></li>
+      <li><a href="checkout.html" class="active">Keranjang</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Ganti mode gelap/terang">🌙</button>
+      <a href="checkout.html" class="cart-btn" aria-label="Keranjang">🛒<span class="cart-badge" data-cart-count style="display:none">0</span></a>
+      <div data-auth-slot style="display:flex; gap:8px;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap section">
+  <h2 style="margin-bottom:24px;">Checkout</h2>
+
+  <div class="steps">
+    <div class="step active" data-step="1"><div class="circ">1</div><span class="label">Keranjang</span></div>
+    <div class="step" data-step="2"><div class="circ">2</div><span class="label">Tujuan &amp; WhatsApp</span></div>
+    <div class="step" data-step="3"><div class="circ">3</div><span class="label">Pesanan Dibuat</span></div>
+  </div>
+
+  <!-- STEP 1: cart -->
+  <div class="stepview" id="view1">
+    <div class="two-col">
+      <div class="panel" id="cartPanel"></div>
+      <div class="panel">
+        <h4 style="margin-top:0;">Ringkasan</h4>
+        <div class="summary-row"><span>Subtotal</span><span class="num" id="sumSubtotal">Rp0</span></div>
+        <div class="summary-row total"><span>Total</span><span class="num" id="sumTotal">Rp0</span></div>
+        <button class="btn btn-primary btn-block" id="toStep2" style="margin-top:16px;">Lanjut ke pembayaran</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: destination -->
+  <div class="stepview" id="view2" style="display:none;">
+    <div class="two-col">
+      <div class="panel">
+        <h4 style="margin-top:0;">Nomor / akun tujuan</h4>
+        <div class="field">
+          <label for="targetAccount">Nomor HP atau ID akun tujuan</label>
+          <input type="text" id="targetAccount" placeholder="Contoh: 081234567890 atau email akun">
+          <div class="hint">Pastikan nomor/akun benar sebelum lanjut ke WhatsApp.</div>
+        </div>
+        <div class="dev-note">
+          <strong>Cara bayar:</strong> setelah klik tombol di bawah, pesanan akan tersimpan dan kamu diarahkan ke WhatsApp admin untuk konfirmasi metode pembayaran & pengiriman produk secara manual.
+        </div>
+      </div>
+      <div class="panel">
+        <h4 style="margin-top:0;">Ringkasan</h4>
+        <div class="summary-row total"><span>Total bayar</span><span class="num" id="sumTotal2">Rp0</span></div>
+        <button class="btn btn-primary btn-block" id="toStep3" style="margin-top:16px;" disabled>Lanjut ke WhatsApp</button>
+        <button class="btn btn-ghost btn-block" id="backTo1" style="margin-top:8px;">Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: confirmation -->
+  <div class="stepview" id="view3" style="display:none;">
+    <div class="panel form-narrow" id="confirmPanel" style="text-align:center;"></div>
+  </div>
+
+  <div class="empty-state" id="cartEmptyGlobal" style="display:none;">
+    <h3>Keranjang kamu masih kosong</h3>
+    <p>Yuk pilih produk top up atau langganan dulu.</p>
+    <a href="index.html" class="btn btn-primary">Lihat katalog</a>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  function renderCartPanel() {
+    const items = Cart.detailed();
+    const cartPanel = document.getElementById('cartPanel');
+    const stepsAndForms = document.querySelectorAll('.steps, #view1, #view2, #view3');
+    const emptyBox = document.getElementById('cartEmptyGlobal');
+
+    if (items.length === 0) {
+      stepsAndForms.forEach(el => el.style.display = 'none');
+      emptyBox.style.display = 'block';
+      return;
+    }
+    emptyBox.style.display = 'none';
+    document.querySelector('.steps').style.display = 'flex';
+
+    cartPanel.innerHTML = `<h4 style="margin-top:0;">Isi keranjang</h4>` + items.map(i => `
+      <div class="cart-line">
+        <div>
+          <div class="name">${i.product.name}</div>
+          <div class="meta">${formatRupiah(i.product.price)} / item</div>
+        </div>
+        <div class="qty-ctrl">
+          <button data-dec="${i.productId}" type="button">−</button>
+          <span>${i.qty}</span>
+          <button data-inc="${i.productId}" type="button">+</button>
+        </div>
+        <div class="price">${formatRupiah(i.subtotal)}</div>
+        <button class="btn btn-danger btn-sm" data-remove="${i.productId}" type="button">Hapus</button>
+      </div>
+    `).join('');
+
+    cartPanel.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => {
+      const id = b.getAttribute('data-inc');
+      const item = Cart.items().find(i => i.productId === id);
+      Cart.setQty(id, item.qty + 1);
+      refreshAll();
+    }));
+    cartPanel.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => {
+      const id = b.getAttribute('data-dec');
+      const item = Cart.items().find(i => i.productId === id);
+      Cart.setQty(id, item.qty - 1);
+      refreshAll();
+    }));
+    cartPanel.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => {
+      Cart.remove(b.getAttribute('data-remove'));
+      refreshAll();
+    }));
+
+    const total = Cart.total();
+    document.getElementById('sumSubtotal').textContent = formatRupiah(total);
+    document.getElementById('sumTotal').textContent = formatRupiah(total);
+    document.getElementById('sumTotal2').textContent = formatRupiah(total);
+  }
+
+  function refreshAll() { renderCartPanel(); renderNavState(); }
+
+  function goToStep(n) {
+    [1,2,3].forEach(s => {
+      document.getElementById('view' + s).style.display = (s === n) ? 'block' : 'none';
+      const stepEl = document.querySelector(`.step[data-step="${s}"]`);
+      stepEl.classList.toggle('active', s === n);
+      stepEl.classList.toggle('done', s < n);
+    });
+  }
+
+  document.getElementById('toStep2').addEventListener('click', () => {
+    if (!Auth.isLoggedIn()) { window.location.href = 'login.html?next=checkout.html'; return; }
+    goToStep(2);
+  });
+  document.getElementById('backTo1').addEventListener('click', () => goToStep(1));
+
+  document.getElementById('targetAccount').addEventListener('input', checkStep2Ready);
+  function checkStep2Ready() {
+    const account = document.getElementById('targetAccount').value.trim();
+    document.getElementById('toStep3').disabled = !account;
+  }
+
+  document.getElementById('toStep3').addEventListener('click', () => {
+    const user = Auth.currentUser();
+    const items = Cart.detailed();
+    const order = Orders.create({
+      userId: user.id,
+      items: items.map(i => ({ productId: i.productId, name: i.product.name, qty: i.qty, price: i.product.price })),
+      total: Cart.total(),
+      method: 'Konfirmasi via WhatsApp',
+      targetAccount: document.getElementById('targetAccount').value.trim(),
+    });
+    Cart.clear();
+
+    const waLink = whatsappOrderLink(order);
+    window.open(waLink, '_blank');
+
+    document.getElementById('confirmPanel').innerHTML = `
+      <div style="font-size:2.4rem;">✅</div>
+      <h3>Pesanan berhasil dibuat!</h3>
+      <p>Nomor pesanan kamu:</p>
+      <p class="order-id" style="font-size:1.1rem; font-weight:700;">${order.id}</p>
+      <p>Chat WhatsApp ke admin sudah terbuka di tab baru untuk konfirmasi pembayaran. Status pesanan akan diperbarui admin setelah pembayaran dikonfirmasi.</p>
+      <a href="${waLink}" target="_blank" class="btn btn-accent btn-block">Buka chat WhatsApp lagi</a>
+      <a href="akun.html" class="btn btn-primary btn-block" style="margin-top:8px;">Lihat riwayat transaksi</a>
+      <a href="index.html" class="btn btn-ghost btn-block" style="margin-top:8px;">Belanja lagi</a>
+    `;
+    refreshAll();
+    goToStep(3);
+  });
+
+  refreshAll();
+</script>
+</body>
+</html>

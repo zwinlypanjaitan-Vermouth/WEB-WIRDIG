@@ -162,8 +162,9 @@ function brandColor(provider) {
 const Banners = {
   all() {
     return readDB(DB_KEYS.BANNERS, [
-      { id: 'b1', title: 'Promo Netflix & Spotify', subtitle: 'Perpanjang langganan favoritmu, diproses instan hari ini.', cta: 'Lihat langganan', link: '#premium', colorFrom: '#34408F', colorTo: '#5A67C9' },
-      { id: 'b2', title: 'Top up e-wallet paling cepat', subtitle: 'DANA, GoPay, OVO, ShopeePay — masuk saldo dalam hitungan detik.', cta: 'Top up sekarang', link: '#ewallet', colorFrom: '#1C8A5B', colorTo: '#2FB37E' },
+      { id: 'b1', title: 'Promo Netflix Premium', subtitle: 'Perpanjang langganan favoritmu, diproses instan hari ini.', cta: 'Lihat langganan', link: '#premium', image: 'assets/img/netflixbanner.jpg' },
+      { id: 'b4', title: 'Vidio Premium 1 Bulan', subtitle: 'Nonton live sport & serial eksklusif tanpa iklan, aktif langsung.', cta: 'Langganan sekarang', link: '#premium', image: 'assets/img/vidiobanner.jpg' },
+      { id: 'b5', title: 'Canva Pro sebulan penuh', subtitle: 'Semua template & fitur AI Canva, cocok buat tugas & konten.', cta: 'Langganan sekarang', link: '#premium', image: 'assets/img/canvabanner.jpg' },
       { id: 'b3', title: 'Member baru dapat harga spesial', subtitle: 'Daftar sekarang dan nikmati proses otomatis 24 jam nonstop.', cta: 'Daftar gratis', link: 'register.html', colorFrom: '#C1432F', colorTo: '#E8703A' },
     ]);
   },
@@ -172,6 +173,18 @@ const Banners = {
 /* ---------------- Products ---------------- */
 const Products = {
   all() { return readDB(DB_KEYS.PRODUCTS, []); },
+  popularIds(limit = 3) {
+    const tally = {};
+    Orders.all().forEach(o => {
+      (o.items || []).forEach(i => {
+        tally[i.productId] = (tally[i.productId] || 0) + i.qty;
+      });
+    });
+    const ranked = Object.entries(tally).sort((a, b) => b[1] - a[1]).map(([id]) => id);
+    if (ranked.length > 0) return ranked.slice(0, limit);
+    // belum ada transaksi sama sekali (misal web baru) → fallback ke penanda manual di data produk
+    return this.all().filter(p => p.popular).map(p => p.id);
+  },
   byCategory(cat) { return this.all().filter(p => cat === 'all' ? true : p.category === cat); },
   byId(id) { return this.all().find(p => p.id === id); },
   search(q) {

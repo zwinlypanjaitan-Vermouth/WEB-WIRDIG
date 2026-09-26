@@ -13,7 +13,7 @@
 
 <header class="site">
   <div class="wrap nav-row">
-    <a href="index.html" class="logo"><img src="assets/img/logo.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
+    <a href="index.html" class="logo"><img src="assets/img/logo 1.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
     <ul class="nav-links">
       <li><a href="index.html" class="active">Beranda</a></li>
       <li><a href="index.html#ewallet">Top Up E-Wallet</a></li>
@@ -151,7 +151,7 @@
   function iconHtmlFor(p) {
     const c = brandColor(p.provider);
     return p.logo
-      ? `<div class="icon" style="background:#fff; border:1px solid var(--border); padding:6px; margin-bottom:10px;"><img src="${p.logo}" alt="${p.provider}" style="width:100%; height:100%; object-fit:contain;"></div>`
+      ? `<div class="icon" style="background:var(--surface); border:1px solid var(--border); padding:6px; margin-bottom:10px;"><img src="${p.logo}" alt="${p.provider}" style="width:100%; height:100%; object-fit:contain;"></div>`
       : `<div class="icon" style="background:${c.bg}; color:${c.fg}; margin-bottom:10px;">${p.icon}</div>`;
   }
 
@@ -235,6 +235,7 @@
 
   /* ---------------- Grid produk (e-wallet digabung per provider) ---------------- */
   function buildDisplayList() {
+    const popularIds = Products.popularIds();
     let source = activeTab === 'all' ? Products.all() : Products.byCategory(activeTab);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -246,11 +247,19 @@
     });
     const ewalletCards = Object.keys(grouped).map(provider => {
       const variants = grouped[provider].sort((a, b) => a.price - b.price);
-      return { type: 'ewallet-group', provider, variants, minPrice: variants[0].price, icon: variants[0].icon, popular: variants.some(v => v.popular) };
+      return { type: 'ewallet-group', provider, variants, minPrice: variants[0].price, icon: variants[0].icon, popular: variants.some(v => popularIds.includes(v.id)) };
     });
-    const premiumCards = source.filter(p => p.category === 'premium').map(p => ({ type: 'single', product: p }));
+    const premiumCards = source.filter(p => p.category === 'premium').map(p => ({ type: 'single', product: p, popular: popularIds.includes(p.id) }));
     return [...ewalletCards, ...premiumCards];
   }
+  
+  function showSkeleton() {
+  const grid = document.getElementById('productGrid');
+  document.getElementById('emptyState').style.display = 'none';
+  grid.innerHTML = Array.from({ length: 8 }).map(() =>
+    `<div class="skeleton-card"><div class="skeleton-shimmer"></div></div>`
+  ).join('');
+}
 
   function renderGrid() {
     const list = buildDisplayList();
@@ -276,7 +285,7 @@
       const p = item.product;
       return `
       <div class="card">
-        ${p.popular ? '<span class="badge-popular">Terlaris</span>' : ''}
+        ${item.popular ? '<span class="badge-popular">Terlaris</span>' : ''}
         ${iconHtmlFor(p)}
         <h4>${p.name}</h4>
         <p class="desc">${p.desc || p.provider}</p>
@@ -308,7 +317,8 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeTab = btn.getAttribute('data-tab');
-      renderGrid();
+            showSkeleton();
+      setTimeout(renderGrid, 220);
     });
   });
   document.getElementById('searchInput').addEventListener('input', (e) => {
@@ -322,7 +332,7 @@
     const track = document.getElementById('bannerTrack');
     const dotsWrap = document.getElementById('bannerDots');
     track.innerHTML = banners.map(b => `
-      <div class="banner-slide" style="background:linear-gradient(120deg, ${b.colorFrom}, ${b.colorTo});">
+      <div class="banner-slide" style="background:${b.image ? `linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)), url('${b.image}') center/cover no-repeat` : `linear-gradient(120deg, ${b.colorFrom}, ${b.colorTo})`};">
         <div class="b-text"><h3>${b.title}</h3><p>${b.subtitle}</p></div>
         <a href="${b.link}" class="btn btn-accent">${b.cta}</a>
       </div>
@@ -352,6 +362,30 @@
 
   renderGrid();
   renderBanner();
+</script>
+
+  <div class="floating-contact" id="floatingContact">
+  <div class="fc-sub">
+    <a href="https://instagram.com/USERNAME_IG_KAMU" target="_blank" rel="noopener" class="fc-btn fc-ig" aria-label="Instagram">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="#fff" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>
+    </a>
+    <a href="https://wa.me/6285792827315" target="_blank" rel="noopener" class="fc-btn fc-wa" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.3 0-.4-.1-.1-.5-1.3-.7-1.7-.2-.5-.4-.4-.5-.4h-.4c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2 1 2.4c.1.2 1.6 2.4 3.8 3.4.5.2.9.4 1.3.5.5.2 1 .1 1.4.1.4-.1 1.3-.5 1.5-1 .2-.5.2-.9.1-1l-.5-.2Z"/></svg>
+    </a>
+  </div>
+  <button type="button" class="fc-main" id="fcMainBtn" aria-label="Hubungi kami">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 3 6.2L4 20l1.8-3A7.96 7.96 0 0 1 4 12Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<script>
+  document.getElementById('fcMainBtn').addEventListener('click', () => {
+    document.getElementById('floatingContact').classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    const fc = document.getElementById('floatingContact');
+    if (!fc.contains(e.target)) fc.classList.remove('open');
+  });
 </script>
 </body>
 </html>

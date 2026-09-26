@@ -18,8 +18,9 @@
   --danger-bg: #FBE9E5;
   --pending-bg: #FDF3E3;
   --pending-ink: #8A5A10;
+  --header-bg: rgba(243,245,241,0.92);
 
-  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-display: "Inter", "Segoe UI", sans-serif;
   --font-body: "Inter", "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
 
@@ -45,6 +46,7 @@
   --danger-bg: rgba(240,112,90,0.15);
   --pending-bg: rgba(240,179,84,0.15);
   --pending-ink: #F0B354;
+  --header-bg: rgba(27,30,38,0.85);
 }
 [data-theme="dark"] .k-select,
 [data-theme="dark"] .k-input,
@@ -111,9 +113,9 @@ button{ font-family: inherit; }
   text-decoration: none;
   transition: transform .12s ease, background .15s ease, border-color .15s ease;
 }
-.btn:active{ transform: translateY(1px); }
-.btn-primary{ background: var(--brand); color:#fff; }
-.btn-primary:hover{ background: var(--brand-dark); }
+.btn:active{ transform: translateY(1px) scale(0.98); }
+.btn-primary{ background: var(--brand); color:#fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.btn-primary:hover{ background: var(--brand-dark); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52,64,143,0.25); }
 .btn-accent{ background: var(--accent); color: var(--accent-ink); }
 .btn-accent:hover{ filter: brightness(0.96); }
 .btn-ghost{ background: transparent; border-color: var(--border); color: var(--ink); }
@@ -126,7 +128,7 @@ button{ font-family: inherit; }
 /* ---------- Header / nav ---------- */
 header.site{
   position: sticky; top:0; z-index: 40;
-  background: rgba(243,245,241,0.92);
+  background: var(--header-bg);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--border);
 }
@@ -144,7 +146,7 @@ header.site{
   display:flex; align-items:center; gap:8px;
 }
 .logo-img{
-  width: 30px; height: 30px; border-radius: 7px;
+  width: 44px; height: 44px; border-radius: 8px;
   object-fit: cover;
 }
 .logo .dot{ color: var(--accent); }
@@ -193,7 +195,7 @@ header.site{
   min-width: 100%;
   display:flex; align-items:center; justify-content: space-between;
   padding: 56px 48px;
-  min-height: 300px;
+   aspect-ratio: 21 / 6;
   gap: 24px;
   color: #fff;
 }
@@ -419,4 +421,62 @@ footer.site .wrap{ display:flex; justify-content:space-between; flex-wrap:wrap; 
   .tabbar-mobile a{ flex:1; text-align:center; text-decoration:none; color: var(--ink-soft); font-size: 0.68rem; display:flex; flex-direction:column; align-items:center; gap:3px; }
   .tabbar-mobile a.active{ color: var(--brand); font-weight:700; }
   body{ padding-bottom: 62px; }
+}
+
+/* ---------- Skeleton loading ---------- */
+.skeleton-card{
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  padding: 16px;
+  height: 210px;
+  overflow: hidden;
+  position: relative;
+}
+.skeleton-shimmer{
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: shimmer 1.2s infinite;
+  transform: translateX(-100%);
+}
+[data-theme="dark"] .skeleton-shimmer{
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+@keyframes shimmer{ to{ transform: translateX(100%); } }
+
+/* ---------- Floating contact (speed-dial) ---------- */
+.floating-contact{
+  position: fixed; right: 20px; bottom: 20px; z-index: 100;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.fc-sub{
+  display:flex; flex-direction:column; gap:12px;
+  opacity:0; transform: translateY(10px);
+  pointer-events:none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.floating-contact:hover .fc-sub,
+.floating-contact.open .fc-sub{
+  opacity:1; transform:translateY(0); pointer-events:auto;
+}
+.fc-btn{
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  text-decoration:none; transition: transform .15s ease;
+}
+.fc-btn:hover{ transform: scale(1.08); }
+.fc-btn svg{ width:26px; height:26px; }
+.fc-wa{ background:#25D366; }
+.fc-ig{ background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fdf497 5%, #fd5949 45%,#d6249f 60%,#285AEB 90%); }
+.fc-main{
+  width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
+  background: var(--brand); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  transition: transform .15s ease, background .15s ease;
+}
+.fc-main:hover{ background: var(--brand-dark); transform: scale(1.05); }
+@media (max-width: 760px){
+  .floating-contact{ right: 14px; bottom: 76px; }
 }

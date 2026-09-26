@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<script src="js/theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teman Digital — Top Up E-Wallet & Langganan Premium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav-row">
+    <a href="index.html" class="logo"><img src="assets/img/logo.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Beranda</a></li>
+      <li><a href="index.html#ewallet">Top Up E-Wallet</a></li>
+      <li><a href="index.html#premium">Langganan Premium</a></li>
+      <li><a href="checkout.html">Keranjang</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Ganti mode gelap/terang">🌙</button>
+      <a href="checkout.html" class="cart-btn" aria-label="Keranjang">
+        🛒<span class="cart-badge" data-cart-count style="display:none">0</span>
+      </a>
+      <div data-auth-slot style="display:flex; gap:8px;"></div>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div style="max-width: 760px;">
+      <h1>Isi ulang saldo dan langganan favoritmu, beres dalam hitungan detik</h1>
+      <p class="lead">Top up DANA, GoPay, OVO, ShopeePay, sampai perpanjang Netflix, ChatGPT Pro, dan Canva Pro — semua proses otomatis, tanpa antre.</p>
+      <div class="hero-badges">
+        <span class="hero-badge">Proses otomatis 24 jam</span>
+        <span class="hero-badge">Harga transparan, tanpa biaya tersembunyi</span>
+        <span class="hero-badge">Riwayat transaksi tersimpan rapi</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="banner-slider" id="bannerSlider">
+  <div class="banner-track" id="bannerTrack"></div>
+  <button class="banner-nav banner-prev" id="bannerPrev" aria-label="Sebelumnya">‹</button>
+  <button class="banner-nav banner-next" id="bannerNext" aria-label="Berikutnya">›</button>
+  <div class="banner-dots" id="bannerDots"></div>
+</div>
+
+<section class="section" id="ewallet">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Katalog produk</h2>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="all">Semua</button>
+      <button class="tab-btn" data-tab="ewallet">Top Up E-Wallet</button>
+      <button class="tab-btn" data-tab="premium">Langganan Premium</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Cari produk, misal: DANA, Netflix, Spotify...">
+    </div>
+
+    <div class="grid" id="productGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <h3>Produk tidak ditemukan</h3>
+      <p>Coba kata kunci lain atau pilih kategori berbeda.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© 2026 Teman Digital. Semua transaksi diproses otomatis.</span>
+    <span>Butuh bantuan? <a href="mailto:cs@temandigital.id">cs@temandigital.id</a></span>
+  </div>
+</footer>
+
+<nav class="tabbar-mobile">
+  <a href="index.html" class="active">🏠<span>Beranda</span></a>
+  <a href="checkout.html">🛒<span>Keranjang</span></a>
+  <a href="akun.html">👤<span>Akun</span></a>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  let activeTab = 'all';
+  let searchQuery = '';
+
+  /* ---------------- Toast kecil buat feedback ---------------- */
+  function showToast(msg) {
+    let toast = document.getElementById('toastMsg');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toastMsg';
+      toast.style.cssText = 'position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:11px 20px; border-radius:999px; font-size:0.86rem; font-weight:600; z-index:200; box-shadow:0 6px 18px rgba(0,0,0,0.25); opacity:0; transition:opacity .25s ease; pointer-events:none;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2600);
+  }
+
+  /* ---------------- Modal (Pesan) ---------------- */
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalBox = document.getElementById('modalBox');
+  function openModal(html) {
+    modalBox.innerHTML = html;
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    modalBox.querySelectorAll('[data-modal-close]').forEach(b => b.addEventListener('click', closeModal));
+  }
+  function closeModal() {
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  function submitQuickOrder(productId, target) {
+    if (!Auth.isLoggedIn()) {
+      window.location.href = 'login.html?next=index.html';
+      return;
+    }
+    const p = Products.byId(productId);
+    const user = Auth.currentUser();
+    const order = Orders.create({
+      userId: user.id,
+      items: [{ productId: p.id, name: p.name, qty: 1, price: p.price }],
+      total: p.price,
+      method: 'Konfirmasi via WhatsApp',
+      targetAccount: target,
+    });
+    closeModal();
+    window.open(whatsappOrderLink(order), '_blank');
+    showToast(`Pesanan ${order.id} dibuat — lanjutkan di WhatsApp`);
+  }
+
+  function iconHtmlFor(p) {
+    const c = brandColor(p.provider);
+    return p.logo
+      ? `<div class="icon" style="background:#fff; border:1px solid var(--border); padding:6px; margin-bottom:10px;"><img src="${p.logo}" alt="${p.provider}" style="width:100%; height:100%; object-fit:contain;"></div>`
+      : `<div class="icon" style="background:${c.bg}; color:${c.fg}; margin-bottom:10px;">${p.icon}</div>`;
+  }
+
+  function openSingleModal(productId) {
+    const p = Products.byId(productId);
+    openModal(`
+      <div class="modal-head">
+        <div>
+          ${iconHtmlFor(p)}
+          <h3>${p.name}</h3>
+          <p style="margin:0; font-size:0.85rem;">${formatRupiah(p.price)}</p>
+        </div>
+        <button class="modal-close" data-modal-close type="button">&times;</button>
+      </div>
+      <div class="field" style="margin-top:16px;">
+        <label for="modalTarget">Nomor HP / akun tujuan</label>
+        <input type="text" id="modalTarget" placeholder="Contoh: 081234567890 atau email akun">
+      </div>
+      <button class="btn btn-primary btn-block" id="modalConfirmBtn">Konfirmasi &amp; Pesan</button>
+      <button class="btn btn-ghost btn-block" id="modalCartBtn" style="margin-top:8px;">+ Tambah ke Keranjang</button>
+    `);
+    document.getElementById('modalCartBtn').addEventListener('click', () => {
+      Cart.add(productId, 1);
+      renderNavState();
+      closeModal();
+      showToast('Ditambahkan ke keranjang');
+    });
+    document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+      const target = document.getElementById('modalTarget').value.trim();
+      if (!target) { showToast('Isi dulu nomor/akun tujuan ya'); return; }
+      submitQuickOrder(productId, target);
+    });
+  }
+
+  function openEwalletModal(provider) {
+    const variants = Products.byCategory('ewallet').filter(p => p.provider === provider).sort((a, b) => a.price - b.price);
+    let selectedId = variants[0].id;
+    openModal(`
+      <div class="modal-head">
+        <div>
+          ${iconHtmlFor(variants.find(v => v.logo) || variants[0])}
+          <h3>Top Up ${provider}</h3>
+          <p style="margin:0; font-size:0.85rem;">Pilih nominal yang mau dibeli</p>
+        </div>
+        <button class="modal-close" data-modal-close type="button">&times;</button>
+      </div>
+      <div class="nominal-list">
+        ${variants.map(v => `
+          <div class="nominal-opt ${v.id === selectedId ? 'selected' : ''}" data-nominal="${v.id}">
+            <span>${v.name.replace(provider, '').trim()}</span>
+            <span class="n-price">${formatRupiah(v.price)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="field">
+        <label for="modalTarget">Nomor HP / akun tujuan</label>
+        <input type="text" id="modalTarget" placeholder="Contoh: 081234567890">
+      </div>
+      <button class="btn btn-primary btn-block" id="modalConfirmBtn">Konfirmasi &amp; Pesan</button>
+      <button class="btn btn-ghost btn-block" id="modalCartBtn" style="margin-top:8px;">+ Tambah ke Keranjang</button>
+    `);
+    modalBox.querySelectorAll('[data-nominal]').forEach(opt => {
+      opt.addEventListener('click', () => {
+        selectedId = opt.getAttribute('data-nominal');
+        modalBox.querySelectorAll('[data-nominal]').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+      });
+    });
+    document.getElementById('modalCartBtn').addEventListener('click', () => {
+      Cart.add(selectedId, 1);
+      renderNavState();
+      closeModal();
+      showToast('Ditambahkan ke keranjang');
+    });
+    document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+      const target = document.getElementById('modalTarget').value.trim();
+      if (!target) { showToast('Isi dulu nomor/akun tujuan ya'); return; }
+      submitQuickOrder(selectedId, target);
+    });
+  }
+
+  /* ---------------- Grid produk (e-wallet digabung per provider) ---------------- */
+  function buildDisplayList() {
+    let source = activeTab === 'all' ? Products.all() : Products.byCategory(activeTab);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      source = source.filter(p => p.name.toLowerCase().includes(q) || p.provider.toLowerCase().includes(q));
+    }
+    const grouped = {};
+    source.filter(p => p.category === 'ewallet').forEach(p => {
+      (grouped[p.provider] = grouped[p.provider] || []).push(p);
+    });
+    const ewalletCards = Object.keys(grouped).map(provider => {
+      const variants = grouped[provider].sort((a, b) => a.price - b.price);
+      return { type: 'ewallet-group', provider, variants, minPrice: variants[0].price, icon: variants[0].icon, popular: variants.some(v => v.popular) };
+    });
+    const premiumCards = source.filter(p => p.category === 'premium').map(p => ({ type: 'single', product: p }));
+    return [...ewalletCards, ...premiumCards];
+  }
+
+  function renderGrid() {
+    const list = buildDisplayList();
+    const grid = document.getElementById('productGrid');
+    const empty = document.getElementById('emptyState');
+    if (list.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = list.map(item => {
+      if (item.type === 'ewallet-group') {
+        return `
+        <div class="card">
+          ${item.popular ? '<span class="badge-popular">Terlaris</span>' : ''}
+          ${iconHtmlFor(item.variants.find(v => v.logo) || item.variants[0])}
+          <h4>${item.provider}</h4>
+          <p class="desc">Top up saldo instan, mulai dari ${formatRupiah(item.minPrice)} (${item.variants.length} pilihan nominal)</p>
+          <button class="btn btn-primary btn-block" data-ewallet="${item.provider}" style="margin-top:auto;">Pesan</button>
+        </div>`;
+      }
+      const p = item.product;
+      return `
+      <div class="card">
+        ${p.popular ? '<span class="badge-popular">Terlaris</span>' : ''}
+        ${iconHtmlFor(p)}
+        <h4>${p.name}</h4>
+        <p class="desc">${p.desc || p.provider}</p>
+        <div class="price-row"><span class="price">${formatRupiah(p.price)}</span></div>
+        <div class="actions">
+          <button class="btn btn-ghost" data-add="${p.id}">+ Keranjang</button>
+          <button class="btn btn-primary" data-order="${p.id}">Pesan</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Cart.add(btn.getAttribute('data-add'), 1);
+        renderNavState();
+        showToast('Ditambahkan ke keranjang');
+      });
+    });
+    grid.querySelectorAll('[data-order]').forEach(btn => {
+      btn.addEventListener('click', () => openSingleModal(btn.getAttribute('data-order')));
+    });
+    grid.querySelectorAll('[data-ewallet]').forEach(btn => {
+      btn.addEventListener('click', () => openEwalletModal(btn.getAttribute('data-ewallet')));
+    });
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.getAttribute('data-tab');
+      renderGrid();
+    });
+  });
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    renderGrid();
+  });
+
+  /* ---------------- Banner iklan (auto-slide + manual) ---------------- */
+  function renderBanner() {
+    const banners = Banners.all();
+    const track = document.getElementById('bannerTrack');
+    const dotsWrap = document.getElementById('bannerDots');
+    track.innerHTML = banners.map(b => `
+      <div class="banner-slide" style="background:linear-gradient(120deg, ${b.colorFrom}, ${b.colorTo});">
+        <div class="b-text"><h3>${b.title}</h3><p>${b.subtitle}</p></div>
+        <a href="${b.link}" class="btn btn-accent">${b.cta}</a>
+      </div>
+    `).join('');
+    dotsWrap.innerHTML = banners.map((_, i) => `<button data-dot="${i}" class="${i === 0 ? 'active' : ''}" aria-label="Slide ${i + 1}"></button>`).join('');
+
+    let current = 0;
+    const total = banners.length;
+    function goTo(idx) {
+      current = (idx + total) % total;
+      track.style.transform = `translateX(-${current * 100}%)`;
+      dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('active', i === current));
+    }
+    let autoplayTimer;
+    function startAutoplay() { autoplayTimer = setInterval(() => goTo(current + 1), 4500); }
+    function resetAutoplay() { clearInterval(autoplayTimer); startAutoplay(); }
+
+    document.getElementById('bannerPrev').addEventListener('click', () => { goTo(current - 1); resetAutoplay(); });
+    document.getElementById('bannerNext').addEventListener('click', () => { goTo(current + 1); resetAutoplay(); });
+    dotsWrap.querySelectorAll('[data-dot]').forEach(d => d.addEventListener('click', () => { goTo(Number(d.getAttribute('data-dot'))); resetAutoplay(); }));
+
+    const slider = document.getElementById('bannerSlider');
+    slider.addEventListener('mouseenter', () => clearInterval(autoplayTimer));
+    slider.addEventListener('mouseleave', startAutoplay);
+    startAutoplay();
+  }
+
+  renderGrid();
+  renderBanner();
+</script>
+</body>
+</html>

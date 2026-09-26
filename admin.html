@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<script src="js/theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin — Teman Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav-row">
+    <a href="index.html" class="logo"><img src="assets/img/logo.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Beranda</a></li>
+      <li><a href="admin.html" class="active">Admin</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Ganti mode gelap/terang">🌙</button>
+      <a href="checkout.html" class="cart-btn" aria-label="Keranjang">🛒<span class="cart-badge" data-cart-count style="display:none">0</span></a>
+      <div data-auth-slot style="display:flex; gap:8px;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap section">
+  <h2>Panel Admin</h2>
+  <div class="dev-note">
+    <strong>Catatan demo:</strong> panel ini memodifikasi data di localStorage browser ini saja (tidak tersinkron ke perangkat lain). Untuk penggunaan sungguhan, sambungkan ke database & API di server.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-atab="orders">Semua Pesanan</button>
+    <button class="tab-btn" data-atab="products">Kelola Produk</button>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="ordersView">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>No. Pesanan</th><th>Pembeli</th><th>Produk</th><th>Total</th><th>Tujuan</th><th>Status</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="allOrdersTbody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="ordersEmpty" style="display:none;"><h3>Belum ada pesanan masuk</h3></div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="productsView" style="display:none;">
+    <div class="two-col">
+      <div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Produk</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead>
+            <tbody id="productTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h4 style="margin-top:0;" id="formTitle">Tambah produk baru</h4>
+        <form id="productForm">
+          <input type="hidden" id="editId">
+          <div class="field">
+            <label for="pCategory">Kategori</label>
+            <select id="pCategory">
+              <option value="ewallet">Top Up E-Wallet</option>
+              <option value="premium">Langganan Premium</option>
+            </select>
+          </div>
+          <div class="field"><label for="pProvider">Provider / merek</label><input type="text" id="pProvider" required placeholder="Contoh: DANA, Netflix"></div>
+          <div class="field"><label for="pName">Nama produk</label><input type="text" id="pName" required placeholder="Contoh: DANA Rp50.000"></div>
+          <div class="field"><label for="pDesc">Deskripsi singkat (opsional)</label><input type="text" id="pDesc"></div>
+          <div class="field"><label for="pLogo">Path/URL gambar logo (opsional)</label><input type="text" id="pLogo" placeholder="assets/img/dana.png"><div class="hint">Kosongkan kalau mau pakai badge warna otomatis.</div></div>
+          <div class="field"><label for="pPrice">Harga (Rp)</label><input type="number" id="pPrice" required min="0"></div>
+          <div class="field"><label for="pIcon">Inisial ikon (1 huruf)</label><input type="text" id="pIcon" maxlength="1" required placeholder="D"></div>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Tambah produk</button>
+          <button type="button" class="btn btn-ghost btn-block" id="cancelEdit" style="margin-top:8px; display:none;">Batal edit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  if (Auth.requireAdmin()) {
+
+    document.querySelectorAll('[data-atab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-atab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.getAttribute('data-atab');
+        document.getElementById('ordersView').style.display = tab === 'orders' ? 'block' : 'none';
+        document.getElementById('productsView').style.display = tab === 'products' ? 'block' : 'none';
+      });
+    });
+
+    /* ---- Orders ---- */
+    function renderAllOrders() {
+      const orders = Orders.all();
+      const tbody = document.getElementById('allOrdersTbody');
+      document.getElementById('ordersEmpty').style.display = orders.length === 0 ? 'block' : 'none';
+      const users = Auth.users();
+      tbody.innerHTML = orders.map(o => {
+        const buyer = users.find(u => u.id === o.userId);
+        return `
+        <tr>
+          <td class="mono">${o.id}</td>
+          <td>${buyer ? buyer.name : '—'}</td>
+          <td>${o.items.map(i => `${i.name} ×${i.qty}`).join(', ')}</td>
+          <td class="mono">${formatRupiah(o.total)}</td>
+          <td>${o.targetAccount}</td>
+          <td><span class="status-pill status-${o.status === 'sukses' ? 'sukses' : (o.status === 'gagal' ? 'gagal' : 'pending')}">${o.status}</span></td>
+          <td>
+            <select data-status="${o.id}" class="k-select" style="padding:6px; font-size:0.8rem;">
+              <option value="pending" ${o.status==='pending'?'selected':''}>pending</option>
+              <option value="sukses" ${o.status==='sukses'?'selected':''}>sukses</option>
+              <option value="gagal" ${o.status==='gagal'?'selected':''}>gagal</option>
+            </select>
+          </td>
+        </tr>`;
+      }).join('');
+      tbody.querySelectorAll('[data-status]').forEach(sel => {
+        sel.addEventListener('change', () => {
+          Orders.updateStatus(sel.getAttribute('data-status'), sel.value);
+          renderAllOrders();
+        });
+      });
+    }
+    renderAllOrders();
+    setInterval(renderAllOrders, 2000);
+
+    /* ---- Products ---- */
+    function renderProductTable() {
+      const tbody = document.getElementById('productTbody');
+      tbody.innerHTML = Products.all().map(p => `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.category === 'ewallet' ? 'E-Wallet' : 'Premium'}</td>
+          <td class="mono">${formatRupiah(p.price)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-ghost btn-sm" data-edit="${p.id}" type="button">Edit</button>
+            <button class="btn btn-danger btn-sm" data-del="${p.id}" type="button">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => loadProductToForm(b.getAttribute('data-edit'))));
+      tbody.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+        if (confirm('Hapus produk ini?')) { Products.remove(b.getAttribute('data-del')); renderProductTable(); }
+      }));
+    }
+    renderProductTable();
+
+    function loadProductToForm(id) {
+      const p = Products.byId(id);
+      if (!p) return;
+      document.getElementById('editId').value = p.id;
+      document.getElementById('pCategory').value = p.category;
+      document.getElementById('pProvider').value = p.provider;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pDesc').value = p.desc || '';
+      document.getElementById('pLogo').value = p.logo || '';
+      document.getElementById('pPrice').value = p.price;
+      document.getElementById('pIcon').value = p.icon;
+      document.getElementById('formTitle').textContent = 'Edit produk';
+      document.getElementById('submitBtn').textContent = 'Simpan perubahan';
+      document.getElementById('cancelEdit').style.display = 'block';
+    }
+    function resetForm() {
+      document.getElementById('productForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('formTitle').textContent = 'Tambah produk baru';
+      document.getElementById('submitBtn').textContent = 'Tambah produk';
+      document.getElementById('cancelEdit').style.display = 'none';
+    }
+    document.getElementById('cancelEdit').addEventListener('click', resetForm);
+
+    document.getElementById('productForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = {
+        category: document.getElementById('pCategory').value,
+        provider: document.getElementById('pProvider').value.trim(),
+        name: document.getElementById('pName').value.trim(),
+        desc: document.getElementById('pDesc').value.trim(),
+        logo: document.getElementById('pLogo').value.trim(),
+        price: Number(document.getElementById('pPrice').value),
+        icon: document.getElementById('pIcon').value.trim().toUpperCase(),
+      };
+      const editId = document.getElementById('editId').value;
+      if (editId) Products.update(editId, data); else Products.add(data);
+      renderProductTable();
+      resetForm();
+    });
+  }
+</script>
+</body>
+</html>

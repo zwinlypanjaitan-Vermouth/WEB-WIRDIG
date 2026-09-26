@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<script src="js/theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akun Saya — Teman Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav-row">
+    <a href="index.html" class="logo"><img src="assets/img/logo.png" alt="Teman Digital" class="logo-img" onerror="this.style.display='none'">Teman Digital<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Beranda</a></li>
+      <li><a href="checkout.html">Keranjang</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Ganti mode gelap/terang">🌙</button>
+      <a href="checkout.html" class="cart-btn" aria-label="Keranjang">🛒<span class="cart-badge" data-cart-count style="display:none">0</span></a>
+      <div data-auth-slot style="display:flex; gap:8px;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap section">
+  <div class="two-col">
+    <div>
+      <h2>Riwayat transaksi</h2>
+      <div class="table-wrap">
+        <table class="data" id="orderTable">
+          <thead>
+            <tr><th>No. Pesanan</th><th>Produk</th><th>Total</th><th>Metode</th><th>Status</th><th>Tanggal</th></tr>
+          </thead>
+          <tbody id="orderTbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="orderEmpty" style="display:none;">
+        <h3>Belum ada transaksi</h3>
+        <p>Transaksi kamu akan muncul di sini.</p>
+        <a href="index.html" class="btn btn-primary">Mulai belanja</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4 style="margin-top:0;">Profil</h4>
+      <div id="profileBox"></div>
+      <a href="admin.html" class="btn btn-ghost btn-block" id="adminLink" style="margin-top:14px; display:none;">Buka panel admin</a>
+    </div>
+  </div>
+</div>
+
+<nav class="tabbar-mobile">
+  <a href="index.html">🏠<span>Beranda</span></a>
+  <a href="checkout.html">🛒<span>Keranjang</span></a>
+  <a href="akun.html" class="active">👤<span>Akun</span></a>
+</nav>
+
+<script src="js/store.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  if (Auth.requireLogin('akun.html')) {
+    const user = Auth.currentUser();
+
+    document.getElementById('profileBox').innerHTML = `
+      <p style="margin-bottom:6px;"><strong>${user.name}</strong></p>
+      <p style="margin-bottom:6px; color:var(--ink-soft); font-size:0.88rem;">${user.email}</p>
+      <p style="color:var(--ink-soft); font-size:0.88rem;">${user.phone}</p>
+    `;
+    if (user.role === 'admin') document.getElementById('adminLink').style.display = 'block';
+
+    const orders = Orders.byUser(user.id);
+    const tbody = document.getElementById('orderTbody');
+    if (orders.length === 0) {
+      document.getElementById('orderTable').style.display = 'none';
+      document.getElementById('orderEmpty').style.display = 'block';
+    } else {
+      function renderOrders() {
+        tbody.innerHTML = Orders.byUser(user.id).map(o => `
+          <tr>
+            <td class="mono">${o.id}</td>
+            <td>${o.items.map(i => `${i.name} ×${i.qty}`).join(', ')}</td>
+            <td class="mono">${formatRupiah(o.total)}</td>
+            <td>${o.method}</td>
+            <td><span class="status-pill status-${o.status === 'sukses' ? 'sukses' : (o.status === 'gagal' ? 'gagal' : 'pending')}">${o.status}</span></td>
+            <td>${new Date(o.createdAt).toLocaleString('id-ID')}</td>
+          </tr>
+        `).join('');
+      }
+      renderOrders();
+      // Refresh berkala untuk menangkap perubahan status simulasi
+      setInterval(renderOrders, 1500);
+    }
+  }
+</script>
+</body>
+</html>

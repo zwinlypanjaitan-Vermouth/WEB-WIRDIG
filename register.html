@@ -44,7 +44,7 @@
       </div>
       <div class="field">
         <label for="phone">Nomor HP</label>
-        <input type="tel" id="phone" required placeholder="08xxxxxxxxxx">
+        <input type="tel" id="phone" required pattern="^(0|62|\+62)8[0-9]{8,11}$" title="Format nomor HP Indonesia, contoh: 08123456789" placeholder="08xxxxxxxxxx">
       </div>
       <div class="field">
         <label for="password">Kata sandi</label>

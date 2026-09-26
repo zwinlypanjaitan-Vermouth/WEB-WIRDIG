@@ -46,7 +46,7 @@ function formatRupiah(n) {
    terbaru pas buka lagi — TIDAK perlu hapus localStorage manual.
    Data user, riwayat pesanan & keranjang TIDAK ikut kereset. */
 const SEED_VERSION = 2;
-
+const ADMIN_PASSWORD_VERSION = 1;
 function seedIfEmpty() {
   const savedVersion = Number(localStorage.getItem('kp_seed_version') || 0);
   const needsReseed = savedVersion < SEED_VERSION || !localStorage.getItem(DB_KEYS.PRODUCTS);
@@ -97,19 +97,32 @@ function seedIfEmpty() {
     localStorage.setItem('kp_seed_version', String(SEED_VERSION));
   }
 
-  if (!localStorage.getItem(DB_KEYS.USERS)) {
+    if (!localStorage.getItem(DB_KEYS.USERS)) {
     const users = [
       {
         id: uid('usr'),
         name: 'Admin Teman Digital',
         email: 'admin@temandigital.id',
         phone: '085792827315',
-        password: 'admin123',
+        password: 'admin123', // <-- ganti password admin di sini
         role: 'admin',
         createdAt: Date.now(),
       },
     ];
     writeDB(DB_KEYS.USERS, users);
+    localStorage.setItem('kp_admin_pw_version', String(ADMIN_PASSWORD_VERSION));
+  } else {
+    // USERS udah pernah ada di browser ini (bukan browser baru).
+    // Blok ini SYNC password admin kalau ADMIN_PASSWORD_VERSION dinaikkan,
+    // tanpa menghapus akun lain yang udah keburu register duluan.
+    const savedPwVersion = Number(localStorage.getItem('kp_admin_pw_version') || 0);
+    if (savedPwVersion < ADMIN_PASSWORD_VERSION) {
+      const users = readDB(DB_KEYS.USERS, []);
+      const admin = users.find(u => u.role === 'admin');
+      if (admin) admin.password = 'admin123'; // <-- samain dengan password baru di atas
+      writeDB(DB_KEYS.USERS, users);
+      localStorage.setItem('kp_admin_pw_version', String(ADMIN_PASSWORD_VERSION));
+    }
   }
 
   if (!localStorage.getItem(DB_KEYS.ORDERS)) writeDB(DB_KEYS.ORDERS, []);
@@ -195,7 +208,13 @@ const Auth = {
     email = (email || '').toLowerCase().trim();
     return this.users().find(u => u.email.toLowerCase() === email);
   },
-  register({ name, email, phone, password }) {
+    register({ name, email, phone, password }) {
+    if (password.length < 6) {
+      return { ok: false, error: 'Kata sandi minimal 6 karakter.' };
+    }
+    if (!/^(0|62|\+62)8[0-9]{8,11}$/.test(phone)) {
+      return { ok: false, error: 'Format nomor HP tidak valid. Contoh: 08123456789' };
+    }
     if (this.findByEmail(email)) {
       return { ok: false, error: 'Email sudah terdaftar. Coba login.' };
     }
